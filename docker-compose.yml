@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: task-manager-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-taskadmin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ${DB_NAME:-task_manager}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: task-manager-keycloak
+    restart: always
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN_USER:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-changeme}
+    ports:
+      - "8080:8080"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+volumes:
+  postgres_data:
+  keycloak_data:
