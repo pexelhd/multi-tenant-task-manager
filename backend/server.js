@@ -1,4 +1,5 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
 const { sequelize } = require('./models');
@@ -8,6 +9,7 @@ const tenantRoutes = require('./routes/tenantRoutes');
 const userRoutes = require('./routes/userRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const aiChatRoutes = require('./routes/aiChatRoutes');
+const dbRoutes = require('./routes/dbRoutes');
 
 const app = express();
 
@@ -30,6 +32,7 @@ app.use('/api/tenants', tenantRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai/chat', aiChatRoutes);
+app.use('/api/db', dbRoutes);
 
 const PORT = process.env.PORT || 5000;
 

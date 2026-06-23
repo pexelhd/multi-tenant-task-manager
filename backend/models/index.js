@@ -2,6 +2,7 @@ const sequelize = require('../config/database');
 const Tenant = require('./Tenant');
 const User = require('./User');
 const Task = require('./Task');
+const Role = require('./role');
 
 // Tenant <-> User
 Tenant.hasMany(User, { foreignKey: 'tenantId', as: 'users' });
@@ -24,4 +25,5 @@ module.exports = {
   Tenant,
   User,
   Task,
+  Role,
 };
