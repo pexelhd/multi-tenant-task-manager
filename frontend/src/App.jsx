@@ -3,6 +3,7 @@ import { useAuth } from '@/context/AuthContext'
 import { Layout } from '@/components/Layout'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { DashboardPage } from '@/pages/DashboardPage'
+import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { TenantsPage } from '@/pages/TenantsPage'
 import { UsersPage } from '@/pages/UsersPage'
 import { TasksPage } from '@/pages/TasksPage'
@@ -51,6 +52,14 @@ function App() {
         }
       >
         <Route index element={<DashboardPage />} />
+        <Route
+          path="analytics"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'STAFF']}>
+              <AnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="tenants"
           element={

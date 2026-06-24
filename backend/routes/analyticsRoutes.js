@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-
 const verifyToken = require('../middleware/auth');
 const loadDbUser = require('../middleware/loadDbUser');
-const dbController = require('../controllers/dbController');
+const analyticsController = require('../controllers/analyticsController');
 
-router.get('/summary', verifyToken, loadDbUser, dbController.getSummary);
+router.get('/', verifyToken, loadDbUser, analyticsController.getAnalytics);
 
 module.exports = router;

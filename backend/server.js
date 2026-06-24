@@ -10,6 +10,7 @@ const userRoutes = require('./routes/userRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const aiChatRoutes = require('./routes/aiChatRoutes');
 const dbRoutes = require('./routes/dbRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 
 const app = express();
 
@@ -33,16 +34,19 @@ app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/ai/chat', aiChatRoutes);
 app.use('/api/db', dbRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 sequelize.authenticate()
+  .then(() => sequelize.sync({ alter: true }))
   .then(() => {
-    console.log('✅ Database connected');
+    console.log('✅ Database connected and synced');
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
     });
   })
   .catch((err) => {
     console.error('❌ Unable to connect to database:', err.message);
+    process.exit(1);
   });
