@@ -16,7 +16,6 @@ services:
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
-    plan: free
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -44,15 +43,15 @@ services:
           name: task-manager-db
           property: password
       - key: KEYCLOAK_URL
-        sync: false          # set manually after Keycloak is deployed
+        sync: false
       - key: KEYCLOAK_REALM
         value: task-manager
       - key: KEYCLOAK_CLIENT_ID
         value: task-manager-app
       - key: KEYCLOAK_CLIENT_SECRET
-        sync: false          # set manually from Keycloak admin console
+        sync: false
       - key: GROQ_API_KEY
-        sync: false          # set manually
+        sync: false
 
   # ── Keycloak ──────────────────────────────────────────────────
   - type: web
@@ -60,14 +59,13 @@ services:
     runtime: image
     image:
       url: quay.io/keycloak/keycloak:24.0
-    plan: free
     healthCheckPath: /health/ready
     dockerCommand: start
     envVars:
       - key: KEYCLOAK_ADMIN
         value: admin
       - key: KEYCLOAK_ADMIN_PASSWORD
-        sync: false          # set a strong password manually
+        sync: false
       - key: KC_DB
         value: postgres
       - key: KC_DB_URL
@@ -87,16 +85,15 @@ services:
     runtime: static
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: ./frontend/dist
-    plan: free
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false          # set to https://task-manager-backend.onrender.com/api
+        sync: false
       - key: VITE_KEYCLOAK_URL
-        sync: false          # set to https://task-manager-keycloak.onrender.com
+        sync: false
       - key: VITE_KEYCLOAK_REALM
         value: task-manager
       - key: VITE_KEYCLOAK_CLIENT_ID
