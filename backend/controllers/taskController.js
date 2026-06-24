@@ -13,7 +13,7 @@ function getRoleInfo(req) {
 exports.createTask = async (req, res) => {
   try {
     const { isSuperAdmin } = getRoleInfo(req);
-    const { title, description, status, dueDate, tenantId, assignedToId } = req.body;
+    const { title, description, status, priority, dueDate, tenantId, assignedToId } = req.body;
 
     let finalTenantId = tenantId;
     if (!isSuperAdmin) {
@@ -44,6 +44,7 @@ exports.createTask = async (req, res) => {
       title,
       description,
       status: status || 'PENDING',
+      priority: priority || 'MEDIUM',
       dueDate,
       tenantId: finalTenantId,
       assignedToId: assignedToId || null,
@@ -60,7 +61,7 @@ exports.createTask = async (req, res) => {
 exports.getTasks = async (req, res) => {
   try {
     const { isSuperAdmin, isStaff } = getRoleInfo(req);
-    const { page = 1, limit = 10, search = '', status, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    const { page = 1, limit = 10, search = '', status, priority, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
     const offset = (page - 1) * limit;
 
     const where = {};
@@ -73,6 +74,9 @@ exports.getTasks = async (req, res) => {
     }
     if (status) {
       where.status = status;
+    }
+    if (priority) {
+      where.priority = priority;
     }
     if (search) {
       where.title = { [Op.iLike]: `%${search}%` };
@@ -160,7 +164,7 @@ exports.updateTask = async (req, res) => {
     }
 
     // Super Admin / Admin full update
-    const { title, description, status, dueDate, assignedToId } = req.body;
+    const { title, description, status, priority, dueDate, assignedToId } = req.body;
 
     if (assignedToId) {
       const assignee = await User.findByPk(assignedToId);
@@ -176,6 +180,7 @@ exports.updateTask = async (req, res) => {
     if (title) task.title = title;
     if (description !== undefined) task.description = description;
     if (status) task.status = status;
+    if (priority) task.priority = priority;
     if (dueDate !== undefined) task.dueDate = dueDate;
 
     await task.save();

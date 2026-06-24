@@ -20,6 +20,11 @@ const Task = sequelize.define('Task', {
     allowNull: false,
     defaultValue: 'PENDING',
   },
+  priority: {
+    type: DataTypes.ENUM('LOW', 'MEDIUM', 'HIGH'),
+    allowNull: false,
+    defaultValue: 'MEDIUM',
+  },
   dueDate: {
     type: DataTypes.DATE,
     allowNull: true,
