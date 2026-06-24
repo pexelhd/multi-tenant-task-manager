@@ -62,8 +62,7 @@ services:
       url: quay.io/keycloak/keycloak:24.0
     plan: free
     healthCheckPath: /health/ready
-    args:
-      - start
+    dockerCommand: start
     envVars:
       - key: KEYCLOAK_ADMIN
         value: admin
