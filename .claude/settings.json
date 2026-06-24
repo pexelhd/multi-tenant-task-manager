@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s --max-time 20 https://task-manager-backend-akwf.onrender.com/api/health)",
+      "Bash(curl -s --max-time 20 -o /dev/null -w \"HTTP %{http_code}\" https://task-manager-frontend.onrender.com/)",
+      "Bash(curl -s --max-time 20 -o /dev/null -w \"HTTP %{http_code}\" https://unraveled-emptier-backlight.ngrok-free.dev/realms/task-manager/.well-known/openid-configuration)",
+      "Bash(curl -s --max-time 20 https://task-manager-frontend.onrender.com/)",
+      "Bash(git commit -m 'Fix frontend static site: use rootDir and relative dist path *)",
+      "Bash(curl -s --max-time 30 https://task-manager-frontend.onrender.com/)",
+      "Bash(curl -s --max-time 30 https://task-manager-frontend-hxbt.onrender.com/)",
+      "Bash(curl -s --max-time 30 -o /dev/null -w \"%{http_code}\" https://task-manager-frontend-hxbt.onrender.com/)",
+      "Bash(curl -s --max-time 30 https://task-manager-backend-akwf.onrender.com/api/health)"
+    ]
+  }
+}

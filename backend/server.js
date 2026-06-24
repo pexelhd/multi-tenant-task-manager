@@ -11,6 +11,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const aiChatRoutes = require('./routes/aiChatRoutes');
 const dbRoutes = require('./routes/dbRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const commentRoutes = require('./routes/commentRoutes');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/ai/chat', aiChatRoutes);
 app.use('/api/db', dbRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/tasks/:taskId/comments', commentRoutes);
 
 const PORT = process.env.PORT || 5000;
 

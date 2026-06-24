@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { taskApi } from '@/lib/taskApi'
 import { userApi } from '@/lib/userApi'
 import { tenantApi } from '@/lib/tenantApi'
+import { commentApi } from '@/lib/commentApi'
 import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -82,6 +83,183 @@ function useDebounce(value, delay = 400) {
     [delay, timerRef]
   )
   return [debounced, set]
+}
+
+function TaskDetailPanel({ task, isSuperAdmin, isStaff, canManage, onEdit, onDelete, queryClient }) {
+  const { user } = useAuth()
+  const [commentText, setCommentText] = useState('')
+  const commentsEndRef = useRef(null)
+
+  const { data: commentsData, isLoading: commentsLoading } = useQuery({
+    queryKey: ['comments', task.id],
+    queryFn: () => commentApi.list(task.id),
+    staleTime: 10_000,
+  })
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content) => commentApi.create(task.id, content),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['comments', task.id] })
+      setCommentText('')
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to add comment'),
+  })
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId) => commentApi.delete(task.id, commentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comments', task.id] }),
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to delete comment'),
+  })
+
+  useEffect(() => {
+    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [commentsData])
+
+  const dueInfo = dueDateLabel(task.dueDate, task.status)
+  const comments = commentsData?.data || []
+
+  function handleCommentSubmit(e) {
+    e.preventDefault()
+    if (!commentText.trim()) return
+    addCommentMutation.mutate(commentText.trim())
+  }
+
+  const ROLE_INITIALS_COLOR = { SUPER_ADMIN: 'bg-purple-500', ADMIN: 'bg-blue-500', STAFF: 'bg-gray-500' }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="p-5 border-b border-gray-100 shrink-0">
+        <div className="flex gap-2 mb-2">
+          <Badge variant={PRIORITY_COLORS[task.priority] || 'secondary'}>{task.priority || 'MEDIUM'} Priority</Badge>
+          <Badge variant={STATUS_COLORS[task.status]}>{task.status.replace('_', ' ')}</Badge>
+        </div>
+        <h2 className="text-base font-bold text-gray-900 leading-snug">{task.title}</h2>
+      </div>
+
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto p-5 space-y-5 text-sm">
+        {task.description && (
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
+            <p className="text-gray-700 whitespace-pre-wrap bg-gray-50 rounded-lg p-3 border border-gray-100">{task.description}</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Assigned To</p>
+            <p className="text-gray-800 font-medium">{task.assignedTo?.name || 'Unassigned'}</p>
+            {task.assignedTo?.email && <p className="text-xs text-gray-400">{task.assignedTo.email}</p>}
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created By</p>
+            <p className="text-gray-800 font-medium">{task.createdBy?.name || '—'}</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Due Date</p>
+            {task.dueDate ? (
+              <div>
+                <p className="text-gray-800">{new Date(task.dueDate).toLocaleDateString()}</p>
+                {dueInfo && <p className={`text-xs font-medium ${dueInfo.overdue ? 'text-red-600' : dueInfo.urgent ? 'text-amber-600' : 'text-gray-400'}`}>{dueInfo.label}</p>}
+              </div>
+            ) : <p className="text-gray-400">No due date</p>}
+          </div>
+          {isSuperAdmin && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tenant</p>
+              <p className="text-gray-800">{task.tenant?.name || '—'}</p>
+            </div>
+          )}
+        </div>
+
+        <div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created</p>
+          <p className="text-gray-500">{new Date(task.createdAt).toLocaleString()}</p>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-2 pt-1">
+          <Button className="flex-1" size="sm" onClick={onEdit}>
+            {isStaff ? 'Update Status' : 'Edit Task'}
+          </Button>
+          {canManage && (
+            <Button variant="destructive" size="sm" onClick={onDelete}>Delete</Button>
+          )}
+        </div>
+
+        {/* Comments section */}
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+            Comments {comments.length > 0 && `(${comments.length})`}
+          </p>
+
+          {commentsLoading ? (
+            <div className="space-y-2">
+              {[1,2].map(i => <div key={i} className="animate-pulse h-12 bg-gray-100 rounded-lg" />)}
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-gray-400 text-xs text-center py-4 bg-gray-50 rounded-lg">
+              No comments yet. Be the first to add one.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {comments.map((c) => {
+                const isOwn = c.author?.name === user?.name
+                const roleColor = ROLE_INITIALS_COLOR[c.author?.role] || 'bg-gray-400'
+                return (
+                  <div key={c.id} className="flex gap-2.5 group">
+                    <div className={`w-7 h-7 rounded-full ${roleColor} text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5`}>
+                      {c.author?.name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-xs font-semibold text-gray-700">{c.author?.name || 'Unknown'}</span>
+                        <span className="text-[10px] text-gray-400">{new Date(c.createdAt).toLocaleString()}</span>
+                        {(isOwn || isSuperAdmin) && (
+                          <button
+                            onClick={() => deleteCommentMutation.mutate(c.id)}
+                            className="ml-auto text-[10px] text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            delete
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-gray-700 text-sm bg-gray-50 rounded-lg px-3 py-2 border border-gray-100 whitespace-pre-wrap">{c.content}</p>
+                    </div>
+                  </div>
+                )
+              })}
+              <div ref={commentsEndRef} />
+            </div>
+          )}
+
+          {/* Add comment form */}
+          <form onSubmit={handleCommentSubmit} className="mt-3 flex flex-col gap-2">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Add a comment or instruction..."
+              rows={2}
+              className="resize-none text-sm"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleCommentSubmit(e)
+              }}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400">Ctrl+Enter to submit</span>
+              <Button type="submit" size="sm" disabled={!commentText.trim() || addCommentMutation.isPending}>
+                {addCommentMutation.isPending ? 'Posting...' : 'Post Comment'}
+              </Button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 const EMPTY_FORM = {
@@ -447,92 +625,16 @@ export function TasksPage() {
 
       {/* Task Detail Drawer */}
       <Sheet open={!!detailTask} onOpenChange={(open) => !open && setDetailTask(null)}>
-        <SheetContent side="right" className="w-[400px] sm:w-[480px]">
-          {detailTask && (
-            <>
-              <SheetHeader className="mb-6">
-                <div className="flex gap-2 mb-1">
-                  <Badge variant={PRIORITY_COLORS[detailTask.priority] || 'secondary'}>
-                    {detailTask.priority || 'MEDIUM'} Priority
-                  </Badge>
-                  <Badge variant={STATUS_COLORS[detailTask.status]}>
-                    {detailTask.status.replace('_', ' ')}
-                  </Badge>
-                </div>
-                <SheetTitle className="text-lg leading-snug">{detailTask.title}</SheetTitle>
-              </SheetHeader>
-
-              <div className="space-y-5 text-sm">
-                {detailTask.description && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Description</p>
-                    <p className="text-gray-700 whitespace-pre-wrap">{detailTask.description}</p>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Assigned To</p>
-                    <p className="text-gray-800">{detailTask.assignedTo?.name || 'Unassigned'}</p>
-                    {detailTask.assignedTo?.email && (
-                      <p className="text-xs text-gray-400">{detailTask.assignedTo.email}</p>
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created By</p>
-                    <p className="text-gray-800">{detailTask.createdBy?.name || '—'}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Due Date</p>
-                    {detailTask.dueDate ? (() => {
-                      const info = dueDateLabel(detailTask.dueDate, detailTask.status)
-                      return (
-                        <div>
-                          <p className="text-gray-800">{new Date(detailTask.dueDate).toLocaleDateString()}</p>
-                          {info && (
-                            <p className={`text-xs font-medium ${info.overdue ? 'text-red-600' : info.urgent ? 'text-amber-600' : 'text-gray-400'}`}>
-                              {info.label}
-                            </p>
-                          )}
-                        </div>
-                      )
-                    })() : <p className="text-gray-400">No due date</p>}
-                  </div>
-                  {isSuperAdmin && (
-                    <div>
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Tenant</p>
-                      <p className="text-gray-800">{detailTask.tenant?.name || '—'}</p>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Created</p>
-                  <p className="text-gray-700">{new Date(detailTask.createdAt).toLocaleString()}</p>
-                </div>
-
-                <div className="pt-4 flex gap-2">
-                  <Button
-                    className="flex-1"
-                    onClick={() => { openEditDialog(detailTask); setDetailTask(null) }}
-                  >
-                    {isStaff ? 'Update Status' : 'Edit Task'}
-                  </Button>
-                  {canManage && (
-                    <Button
-                      variant="destructive"
-                      onClick={() => { setDeleteTarget(detailTask); setDetailTask(null) }}
-                    >
-                      Delete
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
+        <SheetContent side="right" className="w-[420px] sm:w-[520px] flex flex-col p-0 overflow-hidden">
+          {detailTask && <TaskDetailPanel
+            task={detailTask}
+            isSuperAdmin={isSuperAdmin}
+            isStaff={isStaff}
+            canManage={canManage}
+            onEdit={() => { openEditDialog(detailTask); setDetailTask(null) }}
+            onDelete={() => { setDeleteTarget(detailTask); setDetailTask(null) }}
+            queryClient={queryClient}
+          />}
         </SheetContent>
       </Sheet>
 
