@@ -92,7 +92,7 @@ export function DashboardPage() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Welcome back, {user?.name?.split(' ')[0]}</h2>
           <p className="text-sm text-gray-500 mt-0.5">
-            {user?.roles?.[0]?.replace(/_/g, ' ')} &middot; {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            {(['SUPER_ADMIN','ADMIN','STAFF'].find(r => user?.roles?.includes(r)) || user?.roles?.[0] || '').replace(/_/g, ' ')} &middot; {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
           </p>
         </div>
         {canManage && (

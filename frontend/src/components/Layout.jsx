@@ -72,7 +72,8 @@ export function Layout() {
   })
 
   const overdueCount = summaryData?.summary?.overdueCount || 0
-  const roleLabel = user?.roles?.[0]?.replace(/_/g, ' ') || ''
+  const APP_ROLES = ['SUPER_ADMIN', 'ADMIN', 'STAFF']
+  const roleLabel = (user?.roles?.find((r) => APP_ROLES.includes(r)) || user?.roles?.[0] || '').replace(/_/g, ' ')
 
   const ROLE_COLORS = {
     'SUPER ADMIN': 'bg-purple-100 text-purple-700',
